@@ -4,7 +4,7 @@
     File name: createSlidingWindow.py
     Author: Mamie Wang
     Date created: 11/02/2017
-    Date last modified: 11/02/2017
+    Date last modified: 11/05/2017
     Python version: 3.6
 
     Input: BED3 file of the summit region of the peak call file
@@ -31,21 +31,26 @@ def parseBED3(filePath):
     with open(filePath, 'r') as infile:
         bed3 = infile.readlines()
     bed3 = list(bed3)[1:]
-    bed3 = [list(map(int, line.rstrip().split('\t'))) for line in bed3]
-    return bed3
+    bed3List = []
+    for line in bed3:
+        line = line.rstrip().split('\t')
+        bed3List.append([line[0]] + list(map(int, line[1:])))
+    return bed3List
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('filePath')
+    parser.add_argument('outFilePath')
     args = parser.parse_args()
     bed3 = parseBED3(args.filePath)
+    outfilePath = args.outFilePath
     Y = []
     for i in range(len(bed3)):
         y = createSlidingWindow(bed3[i][1:3])
         y = [[bed3[i][0]] + interval for interval in y]
         Y = Y + y
-    with open('positiveSet.tsv', 'w') as outfile:
+    with open(outfilePath, 'w') as outfile:
         outfile.write('Chrom   start   end\n')
         for y in Y:
             outfile.write(("{0}\t{1}\t{2}\n").format(*y))
