@@ -1,11 +1,12 @@
 import pandas as pd
-import numpy as np
 import glob
 import csv
 
-#create a list object with all of the file names to be preprocessed (all chip-seq data sets)
-#need to give it the path with the folder containing only the chipseq files
-files=glob.glob("/Users/tymorhamamsy/Downloads/E-MTAB-2633.processed.1/*")
+#run script like so: python negative_selectoin.py "path_of_chipseq_files"
+#where path_of_chipseq_files is the folder containing all (and only) the chipseq files
+chip_file_path = sys.argv[1]
+
+files=glob.glob(chip_file_path+"*")
 
 #function to create the negative set for a given file
 def neg_set(file_name):
