@@ -4,7 +4,7 @@
     File name: createSlidingWindow.py
     Author: Mamie Wang
     Date created: 11/02/2017
-    Date last modified: 11/05/2017
+    Date last modified: 11/09/2017
     Python version: 3.6
 
     Input: BED3 file of the summit region of the peak call file
@@ -51,7 +51,6 @@ if __name__ == '__main__':
         y = [[bed3[i][0]] + interval for interval in y]
         Y = Y + y
     with open(outfilePath, 'w') as outfile:
-        outfile.write('Chrom   start   end\n')
         for y in Y:
             outfile.write(("{0}\t{1}\t{2}\n").format(*y))
 
