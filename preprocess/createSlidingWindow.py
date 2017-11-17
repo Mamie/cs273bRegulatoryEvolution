@@ -4,7 +4,7 @@
     File name: createSlidingWindow.py
     Author: Mamie Wang
     Date created: 11/02/2017
-    Date last modified: 11/09/2017
+    Date last modified: 11/16/2017
     Python version: 3.6
 
     Input: BED3 file of the summit region of the peak call file
@@ -13,7 +13,7 @@
 
 import math
 
-def createSlidingWindow(interval, s=2000, k=500):
+def createSlidingWindow(interval, overlap=1000, s=2000, k=500):
     Y = []
     start = interval[0]
     end = interval[1]
@@ -21,7 +21,7 @@ def createSlidingWindow(interval, s=2000, k=500):
     b = a + s
     while a <= end - s/2:
         overlapDistance = min(b, end) - max(a, start) + 1
-        if overlapDistance >= s/2:
+        if overlapDistance >= overlap:
             Y.append([a, b])
         a += k
         b += k
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     outfilePath = args.outFilePath
     Y = []
     for i in range(len(bed3)):
-        y = createSlidingWindow(bed3[i][1:3])
+        y = createSlidingWindow(bed3[i][1:3], overlap=2000)
         y = [[bed3[i][0]] + interval for interval in y]
         Y = Y + y
     with open(outfilePath, 'w') as outfile:
