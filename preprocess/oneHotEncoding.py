@@ -1,0 +1,90 @@
+#!/usr/bin/python
+# -*- coding: <encoding name> -*-
+"""
+    File name: oneHotEncoding.py
+    Author: Mamie Wang
+    Date created: 11/29/2017
+    Date last modified: 11/29/2017
+    Python version: 3.6
+
+    Input: numpy memmap of the validation and training data (digitized)
+    Output: one hot encoded array of validation and training data
+"""
+
+import os, errno
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' #suppress irrelevent warning messages
+import keras;
+import numpy as np
+from keras.models import Sequential
+from keras.layers.core import Dropout, Reshape, Dense, Activation, Flatten
+from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.optimizers import Adadelta, SGD, RMSprop;
+from keras.constraints import maxnorm;
+from keras.layers.advanced_activations import PReLU
+from keras.layers.normalization import BatchNormalization
+from keras.regularizers import l1, l2
+import sklearn
+from sklearn.metrics import average_precision_score, precision_recall_curve
+import matplotlib.pyplot as plt
+from keras.utils import to_categorical
+import pandas
+import time
+import pydot
+import graphviz
+from keras.utils import plot_model
+from IPython.display import SVG
+from keras.utils.vis_utils import model_to_dot
+#import tensorflow as tf
+
+
+
+
+start_time = time.time()
+
+np.random.seed(1234) #sets random seed for consistency
+seq_length = 2000 #2kb iput
+num_labels = 1    #Our binary final prediction. The only label is the predicted probability that the gene is on or whatever
+
+num_val_examples = 315426
+num_train_examples = 4246422
+
+print('Reading in validation data')
+val_nums = np.memmap('/data/processed/hsa/validationDigitized.dat', dtype=np.int32, mode='r', shape=(num_val_examples, 2001))
+print('Read in ' + str(time.time() - start_time))
+datafile = '/data/processed/hsa/validationOneHotEncoding.dat'
+datafile2 = '/data/processed/hsa/validationLabel.dat'
+X_val = np.memmap(datafile, dtype=np.bool_, mode='w+', shape=(num_val_examples, 1, 2000, 4))
+Y_val = np.memmap(datafile2, dtype=np.bool_, mode='w+', shape=(num_val_examples))
+print('Start one hot encoding on validation data')
+start_time = time.time()
+for i in range(num_val_examples):
+	X_val[i, 0, :, :] = to_categorical(val_nums[i, 0:2000], num_classes=4)
+	Y_val[i] = val_nums[i, 2000]
+print('Complete one hot encoding in ' + str(time.time() - start_time))
+print(X_val.shape)
+print(Y_val.shape)
+del X_val
+del Y_val
+del val_nums
+
+start_time = time.time()
+print('Reading in training data')
+train_nums = np.memmap('/data/processed/hsa/trainDigitized.dat', dtype=np.int32, mode='r', shape=(num_train_examples, 2001))
+print('Read in ' + str(time.time() - start_time))
+datafile = '/data/processed/hsa/trainOneHotEncoding.dat'
+datafile2 = '/data/processed/hsa/trainOneHotLabel.dat'
+X_train = np.memmap(datafile, dtype=np.bool_, mode='w+', shape=(num_train_examples, 1, 2000, 4))
+Y_train = np.memmap(datafile2, dtype=np.bool_, mode='w+', shape=(num_train_examples))
+print('Start one hot encoding on training data')
+start_time = time.time()
+for i in range(num_train_examples):
+	X_train[i, 0, :, :] = to_categorical(train_nums[i, 0:2000], num_classes=4)
+	Y_train[i] = train_nums[i, 2000]
+print('Complete one hot encoding in ' + str(time.time() - start_time))
+print(X_train.shape)
+print(Y_train.shape)
+del X_train
+del Y_train
+del train_nums
+
+

@@ -89,15 +89,6 @@ print(val_nums.shape)
 del val_nums
 
 
-start_time = time.time()
-print("One hot encoding for Val data...")
-X_val = []
-for i in range(num_val_examples):
-	X_val.append(to_categorical(X_val_seq[i, :], num_classes=4))
-X_val = np.asarray(X_val)
-X_val = np.expand_dims(X_val, axis = 1) #These reshapes might be causing problems should be (num_examples, 1, sequence_length, 4)
-print("One hot encoding for Val data completed after " + str(time.time() - start_time))
-
 num_training_examples = len(train)
 print(str(num_training_examples) + " training examples")
 filename = '/data/processed/hsa/trainDigitized.dat'
