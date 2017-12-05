@@ -53,8 +53,8 @@ val_nums = np.memmap('/data/processed/hsa/validationDigitized.dat', dtype=np.int
 print('Read in ' + str(time.time() - start_time))
 datafile = '/data/processed/hsa/validationOneHotEncoding.dat'
 datafile2 = '/data/processed/hsa/validationLabel.dat'
-X_val = np.memmap(datafile, dtype=np.bool_, mode='w+', shape=(num_val_examples, 1, 2000, 4))
-Y_val = np.memmap(datafile2, dtype=np.bool_, mode='w+', shape=(num_val_examples))
+X_val = np.memmap(datafile, dtype=np.uint8, mode='w+', shape=(num_val_examples, 1, 2000, 4))
+Y_val = np.memmap(datafile2, dtype=np.uint8, mode='w+', shape=(num_val_examples))
 print('Start one hot encoding on validation data')
 start_time = time.time()
 for i in range(num_val_examples):
@@ -73,8 +73,8 @@ train_nums = np.memmap('/data/processed/hsa/trainDigitized.dat', dtype=np.int32,
 print('Read in ' + str(time.time() - start_time))
 datafile = '/data/processed/hsa/trainOneHotEncoding.dat'
 datafile2 = '/data/processed/hsa/trainOneHotLabel.dat'
-X_train = np.memmap(datafile, dtype=np.bool_, mode='w+', shape=(num_train_examples, 1, 2000, 4))
-Y_train = np.memmap(datafile2, dtype=np.bool_, mode='w+', shape=(num_train_examples))
+X_train = np.memmap(datafile, dtype=np.uint8, mode='w+', shape=(num_train_examples, 1, 2000, 4))
+Y_train = np.memmap(datafile2, dtype=np.uint8, mode='w+', shape=(num_train_examples))
 print('Start one hot encoding on training data')
 start_time = time.time()
 for i in range(num_train_examples):
