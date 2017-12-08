@@ -4,7 +4,7 @@
     File name: oneHotEncoding.py
     Author: Mamie Wang
     Date created: 11/29/2017
-    Date last modified: 12/06/2017
+    Date last modified: 12/07/2017
     Python version: 3.6
 
     Usage:
@@ -53,9 +53,9 @@ if __name__=='__main__':
 	np.random.seed(1234) #sets random seed for consistency
 	seq_length = 2000 #2kb iput
 	num_labels = 1    #Our binary final prediction. The only label is the predicted probability that the gene is on or whatever
-
-	num_val_examples = 315426
-	num_train_examples = 4246422
+	with open(os.path.split(valPath)[0] + '/fileSize.txt', 'r') as infile:
+		num_val_examples = int(infile.readline().rstrip())
+		num_train_examples = int(infile.readline().rstrip())
 
 	print('Reading in validation data')
 	val_nums = np.memmap(valPath, dtype=np.int32, mode='r', shape=(num_val_examples, 2001))

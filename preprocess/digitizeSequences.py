@@ -4,7 +4,7 @@
     File name: digitizeSequences.py
     Author: Mamie Wang
     Date created: 11/29/2017
-    Date last modified: 12/06/2017
+    Date last modified: 12/07/2017
     Python version: 3.6
 
     Usage:
@@ -115,4 +115,6 @@ if __name__=='__main__':
 	print("Train data converted after " + str(time.time()-start_time))
 	print(train_nums.shape)
 	del train_nums
-
+	
+	with open(os.path.split(valPath)[0]+'/fileSize.txt', 'w') as outfile:
+		outfile.write(str(num_val_examples) + '\n' + str(num_training_examples) + '\n')
