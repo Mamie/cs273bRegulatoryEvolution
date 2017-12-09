@@ -1,0 +1,212 @@
+
+import os, errno
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' #suppress irrelevent warning messages
+import keras;
+import numpy as np
+from keras.models import Sequential
+from keras.layers.core import Dropout, Reshape, Dense, Activation, Flatten
+from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.optimizers import Adadelta, SGD, RMSprop;
+from keras.constraints import maxnorm;
+from keras.layers.advanced_activations import PReLU
+from keras.layers.normalization import BatchNormalization
+from keras.regularizers import l1, l2
+import sklearn
+from sklearn.metrics import average_precision_score, precision_recall_curve
+import matplotlib.pyplot as plt
+from keras.utils import to_categorical
+import pandas
+import time
+import pydot
+import graphviz
+from keras.utils import plot_model
+from IPython.display import SVG
+from keras.utils.vis_utils import model_to_dot
+#import tensorflow as tf
+
+
+print("No L1 or L2, dropout = 0.3, lr = 0.01, 4,200,000 training points, 5 epochs saving best val auprc, binary crossentropy")
+
+start_time = time.time()
+
+np.random.seed(1234) #sets random seed for consistency
+seq_length = 2000 #2kb iput
+num_labels = 1    #Our binary final prediction. The only label is the predicted probability that the gene is on or whatever
+num_epochs = 1	  #Number of epochs to train for
+save_folder = "Weights/"	#Folder where weights/parameters are stored
+save_path = save_folder+"model_weights_poster.h5" #Location to save weights/parameters to
+##########################
+init_weights_file = None#'Weights/model_weights.h5' #load in pre-trained weights/parameters Anna gave us here if we're using them. Elsewise, leave as None.
+##########################
+ 
+#Train Chromosomes 1 2 3 4 7 8 9 10 11 12 13 14 15 17 19 20 21 22
+#Val Chromosomes 16 18
+#Test Chromosomes  5 6
+
+val_x_file = 'validationOneHotEncoding.dat'
+val_y_file = 'validationLabel.dat'
+train_x_file = 'trainOneHotEncoding.dat'
+train_y_file = 'trainOneHotLabel.dat'
+num_val_examples = 315426
+num_train_examples = 4246422
+X_val = np.memmap(val_x_file, dtype=np.bool_, mode='r', shape=(num_val_examples, 1, 2000, 4))
+Y_val = np.memmap(val_y_file, dtype=np.bool_, mode='r', shape=(num_val_examples))
+X_train_all = np.memmap(train_x_file, dtype=np.bool_, mode='r', shape=(num_train_examples, 1, 2000, 4))
+Y_train_all = np.memmap(train_y_file, dtype=np.bool_, mode='r', shape=(num_train_examples))
+
+'''
+X_train = X_train_all[0:100000]
+Y_train = Y_train_all[0:100000]
+
+print(np.shape(X_train))
+print(np.shape(Y_train))
+'''
+
+#For testing purposes only
+'''
+X_val = X_val[0:100]
+Y_val = Y_val[0:100]
+X_train = X_train[0:100]
+Y_train = Y_train[0:100]
+'''
+
+#Build model based heavily on original Basset architecture
+model = Sequential() #Multiple models can be made, each corresponding to a different species
+model.add(Convolution2D(300,(1,19),input_shape=(1,int(seq_length), 4)))#, activity_regularizer=l1(0.00001))) #the 1 and the 4 should be switched here. Correct order would be 300,(1,19) and (1,int(seq_length), 4)))
+model.add(BatchNormalization(axis=-1))	#Isn't in all versions but is good
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(1,3)))
+
+model.add(Convolution2D(filters=200,kernel_size=(1,11)))#, activity_regularizer=l1(0.00001)))
+model.add(BatchNormalization(axis=-1))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(1,4)))
+
+model.add(Convolution2D(filters=200,kernel_size=(1,7)))#, activity_regularizer=l1(0.00001)))
+model.add(BatchNormalization(axis=-1))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(1,4)))
+
+model.add(Flatten())
+model.add(Dense(1000))#,activity_regularizer=activity_l2(0.00001))#, activity_regularizer=l2(0.00001)))
+model.add(BatchNormalization(axis=-1))
+model.add(Activation('relu'))
+model.add(Dropout(0.3))
+
+model.add(Dense(1000))#,activity_regularizer=activity_l2(0.00001))#, activity_regularizer=l2(0.00001)))
+model.add(BatchNormalization(axis=-1))
+model.add(Activation('relu'))
+model.add(Dropout(0.3))
+
+model.add(Dense(num_labels)) 
+model.add(Activation("sigmoid"))
+
+adam = keras.optimizers.Adam(lr=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-08) #originally lr was 0.001
+model.compile(loss="binary_crossentropy",optimizer=adam, metrics=['accuracy']) 
+
+#plot_model(model, to_file='model.png')
+#SVG(model_to_dot(model).create(prog='dot', format='svg'))
+#print(model.summary())
+
+#Load weights if they exist
+if init_weights_file!=None:
+	print("Restoring Weights")
+	model.load_weights(init_weights_file)
+
+best_auprc = 0
+#Train Model
+for j in range (5):
+	print("Epoch:")
+	print(j)
+	for i in range(42):
+		print(i)
+		shift = i*100000
+		X_train = X_train_all[0+shift:100000+shift]
+		Y_train = Y_train_all[0+shift:100000+shift]
+		model.fit(X_train, Y_train, batch_size=256, epochs=num_epochs, verbose=1) 
+	y_probs = model.predict_proba(X_val)							#Predicted probability that each label is positive
+	AU_PRC = average_precision_score(Y_val, y_probs)				#Area under PR curve taken as average of precisions for all recalls
+	print('Val AUPRC:', AU_PRC)
+	score = model.evaluate(X_val, Y_val, verbose=0)
+	print('Val loss:', score[0])
+	print('Val accuracy:', score[1])
+
+	if AU_PRC>best_auprc:
+		best_auprc=AU_PRC
+		#Save Parameters
+		print("New best AUPRC, Saving")
+		if init_weights_file!=None:
+		    model.save_weights(init_weights_file)	
+		else:
+			#Make new folder for weights if it doesn't yet exist
+			try: 
+			  os.makedirs(save_folder)
+			except OSError as e:
+			  if e.errno != errno.EEXIST:
+			    raise 	
+			model.save_weights(save_path)
+
+	y_probs = model.predict_proba(X_train)							#Predicted probability that each label is positive
+	AU_PRC = average_precision_score(Y_train, y_probs)				#Area under PR curve taken as average of precisions for all recalls
+	print('Train AUPRC:', AU_PRC)
+	
+	
+
+
+	
+
+print("Trained after " + str(time.time()-start_time))
+
+#Evaluate Model
+
+
+
+y_probs = model.predict_proba(X_val)							#Predicted probability that each label is positive
+AU_PRC = average_precision_score(Y_val, y_probs)				#Area under PR curve taken as average of precisions for all recalls
+precision, recall, _ = precision_recall_curve(Y_val, y_probs)	#Arrays for plotting precision recall curve
+print('Max prob val:', np.amax(y_probs))
+print('Min prob val:', np.amin(y_probs))
+print('Val AUPRC:', AU_PRC)
+#score = model.evaluate(X_train, Y_train, verbose=0)
+#print('Train loss:', score[0])
+#print('Train accuracy:', score[1])
+score = model.evaluate(X_val, Y_val, verbose=0)
+print('Val loss:', score[0])
+print('Val accuracy:', score[1])
+
+y_probs = model.predict_proba(X_train)							#Predicted probability that each label is positive
+AU_PRC = average_precision_score(Y_train, y_probs)				#Area under PR curve taken as average of precisions for all recalls
+precision, recall, _ = precision_recall_curve(Y_train, y_probs)	#Arrays for plotting precision recall curve
+print('Max prob Train:', np.amax(y_probs))
+print('Min prob Train:', np.amin(y_probs))
+print('Train AUPRC:', AU_PRC)
+
+#print(precision)
+#print(recall)
+
+
+
+
+
+#Plot Precision recall curve. Don't do this in Azure since there isn't really an interface for it to show plots there
+'''
+plt.step(recall, precision, color='b', alpha=0.2, where='post')
+plt.fill_between(recall, precision, step='post', alpha=0.2, color='b')
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.ylim([0.0, 1.05])
+plt.xlim([0.0, 1.0])
+plt.title('2-class Precision-Recall curve: AUC={0:0.2f}'.format(AU_PRC))
+plt.savefig("AUPRC.png")
+'''
+
+
+
+
+print("Finished after " + str(time.time()-start_time))
+
+
+#Display plots if they exist
+#plt.show()
+
+
